@@ -25,8 +25,7 @@ public class CustomUserDetails implements UserDetails {
 
             @Override
             public String getAuthority() {
-
-                return student.getUsername();
+                return student.getRole();
             }
         });
 
@@ -43,6 +42,11 @@ public class CustomUserDetails implements UserDetails {
     public String getUsername() {
 
         return student.getUsername();
+    }
+
+    public String getStudentId() {
+
+        return student.getStudentId();
     }
 
     @Override

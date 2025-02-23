@@ -6,11 +6,12 @@ import insung.satto.login.dto.CustomUserDetails;
 import insung.satto.login.entity.Student;
 import insung.satto.login.repository.StudentRepository;
 import insung.satto.login.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
+@Slf4j
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
@@ -25,6 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         //DB에서 조회
         Student student = studentRepository.findByStudentId(studentId);
+        log.info("student role = {}", student.getRole());
         if (student != null) {
             //UserDetails에 담아서 return하면 AutneticationManager가 검증 함
             return new CustomUserDetails(student);

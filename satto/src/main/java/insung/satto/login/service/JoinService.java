@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Type;
 import java.util.Optional;
 
 @Service
@@ -30,28 +31,33 @@ public class JoinService {
 
     @Transactional
     public void joinProcess(JoinDTO joinDTO) throws DuplicateKeyException{
+        log.info("joinProcess() 실행");
 
         String studentId = joinDTO.getStudentId();
         String password = joinDTO.getPassword();
+        String username = joinDTO.getUsername();
+        String nickname = joinDTO.getNickname();
+        String department = joinDTO.getDepartment();
+        Integer grade = joinDTO.getGrade();
+        Boolean isPublic = joinDTO.getIsPublic();
 
-        Student data = new Student();
 
-//        Student findStudent = studentRepository.findByStudentId(studentId);
-        // 학번이 안겹치는지 확인하는 로직 필요
-
+        // 학번이 안겹치는지 확인하는 로직
         if(studentRepository.existsByStudentId(studentId)) {
             log.info("이미 존재하는 학번입니다.");
             throw new DuplicateKeyException("이미 존재하는 학번입니다.");
         }
 
+        Student data = new Student();
+
         data.setStudentId(studentId);
         data.setPassword(bCryptPasswordEncoder.encode(password));
-        data.setUsername("기본이름");
-        data.setNickname("기본닉네임");
-        data.setDepartment("기본학과");
-        data.setGrade(0);
-        data.setIsPublic(true);
-        log.info("joinProcess() 실행");
+        data.setUsername(username);
+        data.setNickname(nickname);
+        data.setDepartment(department);
+        data.setGrade(grade);
+        data.setIsPublic(isPublic);
+        data.setRole("ADMIN");
 
         studentRepository.save(data);
     }

@@ -18,8 +18,8 @@ public class StudentRepositoryJDBC implements StudentRepository{
 
     @Override
     public Student save(Student student) {
-        String sql = "insert into student(studentId, password, username, nickname, department, grade, isPublic) values (?, ?, ?, ?, ?, ?, ?)";
-        template.update(sql, student.getStudentId(), student.getPassword(), student.getUsername(), student.getNickname(), student.getDepartment(), student.getGrade(), student.getIsPublic());
+        String sql = "insert into student(studentId, password, username, nickname, department, grade, isPublic, role) values (?, ?, ?, ?, ?, ?, ?, ?)";
+        template.update(sql, student.getStudentId(), student.getPassword(), student.getUsername(), student.getNickname(), student.getDepartment(), student.getGrade(), student.getIsPublic(), student.getRole());
         return student;
     }
 
@@ -48,6 +48,7 @@ public class StudentRepositoryJDBC implements StudentRepository{
             student.setDepartment(rs.getString("department"));
             student.setGrade(rs.getInt("grade"));
             student.setIsPublic(rs.getBoolean("isPublic"));
+            student.setRole(rs.getString("role"));
             return student;
         };
     }
