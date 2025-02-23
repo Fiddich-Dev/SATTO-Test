@@ -1,7 +1,10 @@
 package insung.satto.login.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import insung.satto.login.dto.ApiResponse;
 import insung.satto.login.dto.CustomUserDetails;
+import insung.satto.login.dto.HttpResponseUtil;
+import insung.satto.login.dto.JwtPair;
 import insung.satto.login.entity.RefreshEntity;
 import insung.satto.login.repository.RefreshRepository;
 import jakarta.servlet.FilterChain;
@@ -18,10 +21,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
@@ -64,7 +64,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     //로그인 성공시 실행하는 메소드 (여기서 JWT를 발급하면 됨)
     @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) {
+    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException {
         log.info("createJwt()");
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
 
@@ -72,23 +72,22 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         log.info("studentId = {}", studentId);
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
-        GrantedAuthority auth = iterator.next();
-
-        String role = auth.getAuthority();
+        String role = authorities.iterator().next().getAuthority();
         log.info("role = {}", role);
 
-        //토큰 생성
+        // 토큰 생성
         String access = jwtUtil.createJwt("access", studentId, role, 600000L);
         String refresh = jwtUtil.createJwt("refresh", studentId, role, 86400000L);
 
-        //Refresh 토큰 저장
+        // Refresh 토큰 db 저장
         addRefreshEntity(studentId, refresh, 86400000L);
 
-        response.setHeader("access", access);
-        response.addCookie(createCookie("refresh", refresh));
-        response.setStatus(HttpStatus.OK.value());
+        JwtPair jwtPair = new JwtPair(
+                access,
+                refresh
+        );
 
+        HttpResponseUtil.setSuccessResponse(response, HttpStatus.CREATED, jwtPair);
     }
 
     private void addRefreshEntity(String studentId, String refresh, Long expiredMs) {
@@ -116,8 +115,13 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     //로그인 실패시 실행하는 메소드
     @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException {
         log.info("unsuccessfulAuthentication()");
-        response.setStatus(401);
+
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        ApiResponse<?> responseBody = ApiResponse.onFailure("401", "아이디 혹은 비밀번호가 일치하지 않습니다");
+        response.getWriter().write(responseBody.toJsonString());
     }
 }

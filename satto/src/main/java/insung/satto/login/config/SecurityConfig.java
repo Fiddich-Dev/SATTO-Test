@@ -78,9 +78,6 @@ public class SecurityConfig {
         http.sessionManagement((session) -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-//        //세션 쿠키 없애기
-//        http.logout((logout) -> logout.disable());
-
 
         return http.build();
     }
