@@ -28,7 +28,7 @@ public class MailController {
         // 실제로는 인증번호를 Redis 같은 곳에 저장해야 함
         mailService.saveAuthCode(email, authCode);
 
-        
+
         return "인증번호가 이메일로 전송되었습니다.";
     }
 
