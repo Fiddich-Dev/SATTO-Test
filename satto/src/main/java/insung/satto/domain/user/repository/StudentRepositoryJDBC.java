@@ -1,12 +1,14 @@
 package insung.satto.domain.user.repository;
 
 import insung.satto.domain.user.entity.Student;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 
+@Slf4j
 @Repository
 public class StudentRepositoryJDBC implements StudentRepository{
 
@@ -34,8 +36,32 @@ public class StudentRepositoryJDBC implements StudentRepository{
     public boolean existsByStudentId(String studentId) {
         String sql = "select count(*) from student where studentId = ?";
         Integer count = template.queryForObject(sql, Integer.class, studentId);
-        System.out.println("count = " + count);
+        log.info("count = {}", count);
         return count >= 1;
+    }
+
+    @Override
+    public void changePublicStatus(boolean nowStatus, String studentId) {
+        String sql = "update student set isPublic = ? where studentId = ?";
+        template.update(sql, !nowStatus, studentId);
+    }
+
+    @Override
+    public void withdrawal(String studentId) {
+        String sql = "delete from student where studentId = ?";
+        template.update(sql, studentId);
+    }
+
+    @Override
+    public void changePassword(String password, String studentId) {
+        String sql = "update student set password = ? where studentId = ?";
+        template.update(sql, password, studentId);
+    }
+
+    @Override
+    public void editProfile(String studentId, String username, String nickname, String department, Integer grade) {
+        String sql = "UPDATE student SET username = ?, nickname = ?, department = ?, grade = ? WHERE studentId = ?";
+        template.update(sql, username, nickname, department, grade, studentId);
     }
 
     private RowMapper<Student> studentRowMapper() {

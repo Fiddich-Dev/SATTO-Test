@@ -1,6 +1,8 @@
 package insung.satto.domain.user.service;
 
 
+import insung.satto.domain.user.dto.ApiResponse;
+import insung.satto.domain.user.dto.ChangePasswordDto;
 import insung.satto.domain.user.dto.JoinDTO;
 import insung.satto.domain.user.entity.Student;
 import insung.satto.domain.user.repository.StudentRepository;
@@ -10,6 +12,10 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Service
 @Slf4j
@@ -57,4 +63,6 @@ public class JoinService {
 
         studentRepository.save(data);
     }
+
+
 }
