@@ -35,6 +35,7 @@ public class ApiResponse<T> {
         return new ApiResponse<>(statusCode, message, null);
     }
 
+    // 실패했을때 컨텐츠도 같이 반환
     public static <T> ApiResponse<T> onFailure(String statusCode, String message, T content) {
         return new ApiResponse<>(statusCode, message, content);
     }

@@ -1,11 +1,11 @@
 package insung.satto.domain.user.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import insung.satto.domain.user.dto.ApiResponse;
-import insung.satto.domain.user.dto.ChangePasswordDto;
 import insung.satto.domain.user.dto.EditProfileDTO;
-import insung.satto.domain.user.dto.StudenIdDTO;
-import insung.satto.domain.user.entity.Student;
-import insung.satto.domain.user.repository.StudentRepository;
+import insung.satto.domain.user.entity.User;
+import insung.satto.domain.user.repository.UserRepository;
+import insung.satto.domain.user.security.jwt.JWTUtil;
 import insung.satto.domain.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -19,20 +19,22 @@ import java.util.Map;
 @ResponseBody
 public class UserController {
 
-    UserService userService;
-    StudentRepository studentRepository;
+    private final UserService userService;
+    private final UserRepository userRepository;
+    private final JWTUtil jwtUtill;
 
-    public UserController(UserService userService, StudentRepository studentRepository) {
+    public UserController(UserService userService, UserRepository userRepository, JWTUtil jwtUtill) {
         this.userService = userService;
-        this.studentRepository = studentRepository;
+        this.userRepository = userRepository;
+        this.jwtUtill = jwtUtill;
     }
 
     @PostMapping("/checkDuplicatedStudentId")
-    public ApiResponse<?> checkDuplicatedStudentId(@RequestBody Map<String, String> request) {
+    public ApiResponse<?> existsByStudentId(@RequestBody Map<String, String> request) {
         log.info("checkDuplicatedStudentId()");
         String studentId = request.get("studentId");
         log.info(studentId);
-        if(userService.checkDuplicatedStudentId(studentId)) {
+        if(userService.existsByStudentId(studentId)) {
             return ApiResponse.onFailure("403", "학번이 이미 존재합니다");
         }
         else {
@@ -41,22 +43,21 @@ public class UserController {
     }
 
     @GetMapping("/info")
-    public ApiResponse<?> getMyAccountInfo(@RequestHeader("Authorization") String accessToken) {
+    public ApiResponse<?> findByStudentId(@RequestHeader("Authorization") String accessToken) {
         log.info("getMyAccountInfo()");
         accessToken = accessToken.substring(7);
-        log.info("accessToken = {}", accessToken);
-
-        Student student = userService.getMyAccountInfoProcess(accessToken);
-        ApiResponse<?> response = ApiResponse.onSuccess(student);
+        String studentId = jwtUtill.getStudentId(accessToken);
+        User user = userService.findByStudentId(studentId);
+        ApiResponse<?> response = ApiResponse.onSuccess(user);
         return response;
     }
 
     @PatchMapping("/changePublicStatus")
     public ApiResponse<?> changePublicStatus(@RequestHeader("Authorization") String accessToken) {
         accessToken = accessToken.substring(7);
-        Student student = userService.getMyAccountInfoProcess(accessToken);
+        String studentId = jwtUtill.getStudentId(accessToken);
         try {
-            userService.changePublicStatus(student.getIsPublic(), student.getStudentId());
+            userService.changePublicStatus(studentId);
             return ApiResponse.onSuccess(null);
         } catch (DuplicateKeyException e) {
             return ApiResponse.onFailure("403", e.getMessage());
@@ -66,55 +67,65 @@ public class UserController {
     @DeleteMapping("/withdrawal")
     public ApiResponse<?> withdrawal(@RequestHeader("Authorization") String accessToken) {
         accessToken = accessToken.substring(7);
-        Student student = userService.getMyAccountInfoProcess(accessToken);
+        String studentId = jwtUtill.getStudentId(accessToken);
         try {
-            userService.withdrawal(student.getStudentId());
+            userService.withdrawal(studentId);
             return ApiResponse.onSuccess(null);
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
         }
 
     }
-
-
-    @PostMapping("/change-password")
-    public ApiResponse<?> changePassword(@RequestHeader("Authorization") String accessToken, @RequestBody ChangePasswordDto changePasswordDto) {
-        log.info("changePassword() = {}", accessToken);
+    @PostMapping("/verifyCurrentPassword")
+    public ApiResponse<?> verifyCurrentPassword(@RequestHeader("Authorization") String accessToken, @RequestBody Map<String, String> inputPassword) {
         accessToken = accessToken.substring(7);
-        Student student = userService.getMyAccountInfoProcess(accessToken);
-        try {
-            userService.changePassword(student, changePasswordDto);
+        String password = inputPassword.get("password");
+        String studentId = jwtUtill.getStudentId(accessToken);
+        if(userService.verifyCurrentPassword(studentId, password)) {
             return ApiResponse.onSuccess(null);
-        } catch (RuntimeException e) {
-            log.info(e.getMessage());
-            throw new RuntimeException(e);
+        }
+        else {
+            return ApiResponse.onFailure("401", "비밀번호가 일치하지 않음");
         }
     }
 
-    @PostMapping("/sendNewPassword")
-    public ApiResponse<?> sendNewPassword(@RequestBody StudenIdDTO studenIdDTO) {
-        log.info("sendNewPassword()");
-        try {
-            userService.sendNewPassword(studenIdDTO.getStudentId());
-            return ApiResponse.onSuccess(null);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            return ApiResponse.onFailure("402", "에러");
-        }
+    // 바꾸는 비번이 현재 비번과 같으면 안됨 구현해야함
+    @PostMapping("/change-password")
+    public ApiResponse<?> changePassword(@RequestHeader("Authorization") String accessToken, @RequestBody Map<String, String> inputPassword) {
+        accessToken = accessToken.substring(7);
+        String password = inputPassword.get("password");
+        String studentId = jwtUtill.getStudentId(accessToken);
+        userService.changePassword(studentId, password);
+        return ApiResponse.onSuccess(null);
     }
+
+
 
     @PostMapping("/editProfile")
     public ApiResponse<?> editProfile(@RequestHeader("Authorization") String accessToken, @RequestBody EditProfileDTO editProfileDTO) {
         log.info("editProfile()");
         accessToken = accessToken.substring(7);
-        Student student = userService.getMyAccountInfoProcess(accessToken);
+        String studentId = jwtUtill.getStudentId(accessToken);
 
         try {
-            userService.editProfile(student.getStudentId(), editProfileDTO);
+            userService.editProfile(studentId, editProfileDTO);
             return ApiResponse.onSuccess(null);
         } catch (Exception e) {
             log.info(e.getMessage());
             return ApiResponse.onFailure("403", "에러발생");
+        }
+    }
+
+    @PostMapping("/sendNewPassword")
+    public ApiResponse<?> sendNewPassword(@RequestBody Map<String, String> request) {
+        log.info("sendNewPassword()");
+        String studentId = request.get("studentId");
+        try {
+            userService.sendNewPassword(studentId);
+            return ApiResponse.onSuccess(null);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            return ApiResponse.onFailure("402", "에러");
         }
     }
 }

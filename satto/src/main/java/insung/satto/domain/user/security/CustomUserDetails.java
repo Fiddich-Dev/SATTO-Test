@@ -1,6 +1,6 @@
 package insung.satto.domain.user.security;
 
-import insung.satto.domain.user.entity.Student;
+import insung.satto.domain.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -9,12 +9,11 @@ import java.util.Collection;
 
 public class CustomUserDetails implements UserDetails {
 
-    private final Student student;
+    private final User user;
 
-    public CustomUserDetails(Student student) {
-        this.student = student;
+    public CustomUserDetails(User user) {
+        this.user = user;
     }
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -25,28 +24,28 @@ public class CustomUserDetails implements UserDetails {
 
             @Override
             public String getAuthority() {
-                return student.getRole();
+                return user.getRole();
             }
         });
 
         return collection;
     }
 
+    public String getStudentId() {
+
+        return user.getStudentId();
+    }
+
     @Override
     public String getPassword() {
 
-        return student.getPassword();
+        return user.getPassword();
     }
 
     @Override
     public String getUsername() {
 
-        return student.getUsername();
-    }
-
-    public String getStudentId() {
-
-        return student.getStudentId();
+        return user.getUsername();
     }
 
     @Override

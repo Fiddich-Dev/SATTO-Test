@@ -1,11 +1,22 @@
 package insung.satto.domain.user.repository;
 
-import insung.satto.domain.user.entity.Student;
-import org.springframework.data.jpa.repository.JpaRepository;
+import insung.satto.domain.user.entity.User;
 
-public interface UserRepository extends JpaRepository<Student, Integer> {
+public interface UserRepository {
 
-//    boolean existsByUsername(String username);
+    User save(User user);
 
-    Student findByUsername(String username);
+    User findByStudentId(String studentId);
+
+    boolean existsByStudentId(String studentId);
+
+    void toggleAccountPrivacy(boolean currentStatus, String studentId);
+
+    void withdrawal(String studentId);
+
+    void changePassword(String password, String studentId);
+
+    void editProfile(String studentId, String username, String nickname, String department, Integer grade);
+
 }
+

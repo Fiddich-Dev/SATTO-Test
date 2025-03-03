@@ -1,5 +1,6 @@
 package insung.satto.domain.user.controller;
 
+import insung.satto.domain.user.dto.ApiResponse;
 import insung.satto.domain.user.service.MailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -20,22 +22,24 @@ public class MailController {
     }
 
     @PostMapping("/send")
-    public String sendEmail(@RequestParam String email) {
+    public ApiResponse<?> sendEmail(@RequestParam String email) {
         String authCode = mailService.generateAuthCode();
         mailService.sendAuthCode(email, authCode);
-
-
-        // 실제로는 인증번호를 Redis 같은 곳에 저장해야 함
+        // redis에 저장
         mailService.saveAuthCode(email, authCode);
-
-
-        return "인증번호가 이메일로 전송되었습니다.";
+        return ApiResponse.onSuccess(null);
     }
 
     @PostMapping("/verify")
-    public String verifyAuthCode(@RequestParam String email, @RequestParam String code) {
+    public ApiResponse<?> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
         log.info("verifyAuthCode()");
         boolean isValid = mailService.verifyAuthCode(email, code);
-        return isValid ? "인증 성공" : "인증 실패";
+        if(isValid) {
+            return ApiResponse.onSuccess(null);
+        }
+        else {
+            return ApiResponse.onFailure("403", "인증실패");
+        }
     }
+
 }

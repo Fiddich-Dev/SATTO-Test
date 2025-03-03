@@ -7,8 +7,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -18,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class MailService {
 
+
     private final JavaMailSender mailSender;
-    private final Map<String, String> verificationCodes = new HashMap<>();
     private final RedisTemplate<String, String> redisTemplate;
 
     // 인증번호 생성 메소드
@@ -45,25 +47,18 @@ public class MailService {
         }
     }
 
-
-
-    // 인증번호 저장 (이메일을 key로 사용)
+    // redis에 인증번호 저장 key값은 email + ":authCode"
     public void saveAuthCode(String email, String authCode) {
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
-        valueOperations.set(email, authCode, 3, TimeUnit.MINUTES);
-        // 여러번 보내면 대치되도록
-//        verificationCodes.put(email, authCode);
+        // 여러번 보내면 대치됨
+        valueOperations.set(email + ":autoCode", authCode, 3, TimeUnit.MINUTES);
     }
 
-    // 인증번호 검증
+    // redis에 저장된 인증번호 검증 key값은 email + ":authCode"
     public boolean verifyAuthCode(String email, String inputCode) {
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
-        String storedCode = valueOperations.getAndDelete(email); // email(key)에 해당하는 값(authCode) 가져오기
+        String storedCode = valueOperations.getAndDelete(email + ":autoCode");
         return storedCode != null && storedCode.equals(inputCode);
-
-
-
-//        String storedCode = verificationCodes.get(email);
-//        return storedCode != null && storedCode.equals(inputCode);
     }
+
 }

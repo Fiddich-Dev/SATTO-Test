@@ -1,13 +1,16 @@
 package insung.satto.domain.user.security.jwt;
 
+import insung.satto.domain.user.dto.ApiResponse;
+import insung.satto.domain.user.dto.HttpResponseUtil;
 import insung.satto.domain.user.security.CustomUserDetails;
-import insung.satto.domain.user.entity.Student;
+import insung.satto.domain.user.entity.User;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,91 +19,63 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+// access토큰이 유효하지 않을때 예외처리(만료아님)
+// bearer 토큰을 받는 요청들의 토큰이 유효한지 검증해준다
 @Slf4j
 public class JWTFilter extends OncePerRequestFilter {
 
     private final JWTUtil jwtUtil;
 
     public JWTFilter(JWTUtil jwtUtil) {
-
         this.jwtUtil = jwtUtil;
     }
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 헤더에서 access키에 담긴 토큰을 꺼냄
         String accessToken = request.getHeader("Authorization");
 
-        if(accessToken != null) {
-            accessToken = accessToken.substring(7);
-        }
-
-        log.info("accessToken = {}", accessToken);
-
         // 토큰이 없다면 다음 필터로 넘김
-        if (accessToken == null) {
-
+        if(accessToken == null) {
             filterChain.doFilter(request, response);
-            log.info("토큰 없음");
-
             return;
         }
-//        accessToken.substring(7);
 
-// 토큰 만료 여부 확인, 만료시 다음 필터로 넘기지 않음
+        // 토큰이 있으면 "bearer "부분 제거
+        accessToken = accessToken.substring(7);
+
+        // 토큰 만료 여부 확인, 만료시 다음 필터로 넘기지 않음
         try {
             jwtUtil.isExpired(accessToken);
         } catch (ExpiredJwtException e) {
-            log.info("토큰 만료");
-            //response body
-            PrintWriter writer = response.getWriter();
-            writer.print("access token expired");
-
-            //response status code
             // 클라랑 소통해서 상태메시지 통일해야함
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            HttpResponseUtil.setErrorResponse(response, HttpStatus.UNAUTHORIZED, ApiResponse.onFailure(HttpStatus.BAD_REQUEST.name(), "만료된 access 토큰"));
             return;
         }
 
         // 토큰이 access인지 확인 (발급시 페이로드에 명시)
         String category = jwtUtil.getCategory(accessToken);
-        log.info("category = {}", category);
-
+        // 만약 입력받은 토큰이 access토큰이 아니면
         if (!category.equals("access")) {
-            log.info("access 토큰이 아님");
-            //response body
-            PrintWriter writer = response.getWriter();
-            writer.print("invalid access token");
-
-            //response status code
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            HttpResponseUtil.setErrorResponse(response, HttpStatus.UNAUTHORIZED, ApiResponse.onFailure(HttpStatus.BAD_REQUEST.name(), "access 토큰 아님"));
             return;
         }
-
-// username, role 값을 획득
-//        String username = jwtUtil.getUsername(accessToken);
-//        String role = jwtUtil.getRole(accessToken);
-
+        // 학번과 권한 조회
+        // 권한은 앞에 "ROLE_" 붙여줘야함
         String studentId = jwtUtil.getStudentId(accessToken);
         String role = "ROLE_" + jwtUtil.getRole(accessToken);
 
-        log.info("studentId = {}", studentId);
-        log.info("role = {}", role);
+        User user = new User();
+        user.setStudentId(studentId);
+        user.setRole(role);
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
 
-        Student student = new Student();
-        student.setStudentId(studentId);
-        student.setRole(role);
-        CustomUserDetails customUserDetails = new CustomUserDetails(student);
-
-        System.out.println(customUserDetails);
-
+        // 스프링 시큐리티 인증 토큰 생성
         Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+        // 컨텍스트 홀더에 저장
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        System.out.println(authToken);
-
         filterChain.doFilter(request, response);
-        log.info("필터체인");
     }
+
 }
