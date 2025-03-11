@@ -22,11 +22,9 @@ public class MailController {
     }
 
     @PostMapping("/send")
-    public ApiResponse<?> sendEmail(@RequestParam String email) {
-        String authCode = mailService.generateAuthCode();
-        mailService.sendAuthCode(email, authCode);
-        // redis에 저장
-        mailService.saveAuthCode(email, authCode);
+    public ApiResponse<?> sendEmail(@RequestParam(value = "email") String email) {
+        log.info("sendEmail()");
+        mailService.sendAuthCode(email);
         return ApiResponse.onSuccess(null);
     }
 

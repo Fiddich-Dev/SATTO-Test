@@ -35,7 +35,7 @@ public class AuthService {
         this.redisTemplate = redisTemplate;
     }
 
-    public void joinProcess(JoinDTO joinDTO) throws DuplicateKeyException {
+    public User joinProcess(JoinDTO joinDTO) throws DuplicateKeyException {
 
         String studentId = joinDTO.getStudentId();
         String password = joinDTO.getPassword();
@@ -60,8 +60,10 @@ public class AuthService {
         data.setGrade(grade);
         data.setIsPublic(isPublic);
         data.setRole("USER");
+        data.setProfileImage(null);
 
         userRepository.save(data);
+        return data;
     }
 
     public JwtPair reissueProcess(String refreshToken) {

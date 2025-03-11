@@ -1,7 +1,7 @@
 package insung.satto.domain.user.service;
 
 
-import insung.satto.domain.user.dto.ChangePasswordDto;
+
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
 import insung.satto.domain.user.repository.UserRepository;
@@ -10,21 +10,32 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 
 @Slf4j
 @Service
 //@RequiredArgsConstructor
 public class UserService {
+
+    @Value("${file.dir}")
+    private String fileDir;
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_+=";
 
@@ -86,12 +97,12 @@ public class UserService {
     }
 
     public void editProfile(String studentId, EditProfileDTO editProfileDTO) {
-        String name = editProfileDTO.getUsername();
-        String nickname = editProfileDTO.getNickname();
-        String department = editProfileDTO.getDepartment();
-        Integer grade = editProfileDTO.getGrade();
+//        String name = editProfileDTO.getUsername();
+//        String nickname = editProfileDTO.getNickname();
+//        String department = editProfileDTO.getDepartment();
+//        Integer grade = editProfileDTO.getGrade();
 
-        userRepository.editProfile(studentId, name, nickname, department, grade);
+        userRepository.editProfile(studentId, editProfileDTO);
     }
 
     public void sendNewPassword(String studentId) {
@@ -120,6 +131,51 @@ public class UserService {
         } catch (MessagingException e) {
             throw new RuntimeException("이메일 전송 실패", e);
         }
+    }
+
+    public String uploadProfileImage(String studentId, MultipartFile file) throws IOException {
+        // 1. 파일 확장자 확인
+        String originalFilename = file.getOriginalFilename();
+        String extension = Optional.ofNullable(originalFilename)
+                .filter(f -> f.contains("."))
+                .map(f -> f.substring(originalFilename.lastIndexOf(".")))
+                .orElse("");
+
+        if (!isValidImageExtension(extension)) {
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다.");
+        }
+
+        // 2. 저장할 파일명 생성 (고유한 이름)
+        String newFileName = UUID.randomUUID().toString() + extension;
+        log.info("newFileName = {}", newFileName);
+
+        // 3. 저장할 파일 경로 설정
+        Path filePath = Paths.get(fileDir, newFileName);
+        log.info("filePath = {}", filePath);
+
+        // 4. 디렉토리 생성 (존재하지 않으면 생성)
+        // 모르겠음
+        Files.createDirectories(filePath.getParent());
+
+        // 5. 파일 저장
+        file.transferTo(filePath.toFile());
+
+        userRepository.editProfileImage(studentId, fileDir + "/" + newFileName);
+
+        // 6. 업로드된 파일 URL 반환
+        return fileDir + "/" + newFileName;
+    }
+
+    public void deleteProfileImage(String studentId) {
+        userRepository.editProfileImage(studentId, null);
+    }
+
+    // 이미지 파일 확장자 검사
+    private boolean isValidImageExtension(String extension) {
+        return extension.equalsIgnoreCase(".jpg") ||
+                extension.equalsIgnoreCase(".jpeg") ||
+                extension.equalsIgnoreCase(".png") ||
+                extension.equalsIgnoreCase(".gif");
     }
 }
 

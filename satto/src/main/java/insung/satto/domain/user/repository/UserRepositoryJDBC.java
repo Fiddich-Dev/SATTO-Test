@@ -1,5 +1,6 @@
 package insung.satto.domain.user.repository;
 
+import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -7,9 +8,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 @Slf4j
-@Repository
+//@Repository
 public class UserRepositoryJDBC implements UserRepository {
 
     private final JdbcTemplate template;
@@ -20,8 +22,8 @@ public class UserRepositoryJDBC implements UserRepository {
 
     @Override
     public User save(User user) {
-        String sql = "insert into users(studentId, password, username, nickname, department, grade, isPublic, role) values (?, ?, ?, ?, ?, ?, ?, ?)";
-        template.update(sql, user.getStudentId(), user.getPassword(), user.getUsername(), user.getNickname(), user.getDepartment(), user.getGrade(), user.getIsPublic(), user.getRole());
+        String sql = "insert into users(studentId, password, username, nickname, department, grade, isPublic, role, profileImage) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        template.update(sql, user.getStudentId(), user.getPassword(), user.getUsername(), user.getNickname(), user.getDepartment(), user.getGrade(), user.getIsPublic(), user.getRole(), null);
         return user;
     }
 
@@ -59,9 +61,15 @@ public class UserRepositoryJDBC implements UserRepository {
     }
 
     @Override
-    public void editProfile(String studentId, String username, String nickname, String department, Integer grade) {
+    public void editProfile(String studentId, EditProfileDTO editProfileDTO) {
         String sql = "UPDATE users SET username = ?, nickname = ?, department = ?, grade = ? WHERE studentId = ?";
-        template.update(sql, username, nickname, department, grade, studentId);
+        template.update(sql, editProfileDTO.getUsername(), editProfileDTO.getNickname(), editProfileDTO.getDepartment(), editProfileDTO.getGrade(), studentId);
+    }
+
+    @Override
+    public void editProfileImage(String studentId, String profileImage) {
+        String sql = "update users set profileImage = ? where studentId = ?";
+        template.update(sql, profileImage, studentId);
     }
 
     private RowMapper<User> studentRowMapper() {
@@ -75,6 +83,7 @@ public class UserRepositoryJDBC implements UserRepository {
             user.setGrade(rs.getInt("grade"));
             user.setIsPublic(rs.getBoolean("isPublic"));
             user.setRole(rs.getString("role"));
+            user.setProfileImage(rs.getString("profileImage"));
             return user;
         };
     }

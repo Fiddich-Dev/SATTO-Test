@@ -25,28 +25,13 @@ public class AuthController {
 
     @PostMapping("/join")
     public ApiResponse<?> joinProcess(@RequestBody JoinDTO joinDTO) {
-        try {
-            authService.joinProcess(joinDTO);
-            ApiResponse<?> response = ApiResponse.onSuccess(null);
-            return response;
-        } catch (DuplicateKeyException e) {
-            log.info("DuplicateKeyException", e);
-            ApiResponse<?> response = ApiResponse.onFailure("403", e.getMessage());
-            return response;
-        }
+        authService.joinProcess(joinDTO);
+        return ApiResponse.onSuccess(null);
     }
 
     @PostMapping("/reissue")
     public ApiResponse<?> reissue(@RequestHeader("refreshToken") String refreshToken) {
-        try {
-            JwtPair newJwtpair = authService.reissueProcess(refreshToken);
-            ApiResponse<JwtPair> reponse = ApiResponse.onSuccess(newJwtpair);
-            return reponse;
-        } catch (RuntimeException e) {
-            log.info("토큰 오류발생", e);
-            ApiResponse<?> response = ApiResponse.onFailure("403", "잘못된 토큰입니다");
-            return response;
-        }
+        return ApiResponse.onSuccess(authService.reissueProcess(refreshToken));
     }
 
 }

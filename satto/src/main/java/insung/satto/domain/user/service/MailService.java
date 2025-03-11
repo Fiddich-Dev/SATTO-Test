@@ -32,7 +32,9 @@ public class MailService {
     }
 
     // 이메일 전송 메소드
-    public void sendAuthCode(String toEmail, String authCode) {
+    public void sendAuthCode(String toEmail) {
+
+        String authCode = generateAuthCode();
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
@@ -42,6 +44,8 @@ public class MailService {
             helper.setText("<h3>인증 코드: <strong>" + authCode + "</strong></h3>", true); // HTML 형식
 
             mailSender.send(message);
+            // redis에 저장
+            saveAuthCode(toEmail, authCode);
         } catch (MessagingException e) {
             throw new RuntimeException("이메일 전송 실패", e);
         }

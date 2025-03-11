@@ -1,6 +1,5 @@
 package insung.satto.domain.user.security.jwt;
 
-import insung.satto.domain.user.dto.TokenDto;
 import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

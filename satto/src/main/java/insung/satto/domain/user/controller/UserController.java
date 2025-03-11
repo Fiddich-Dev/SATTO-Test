@@ -8,9 +8,11 @@ import insung.satto.domain.user.repository.UserRepository;
 import insung.satto.domain.user.security.jwt.JWTUtil;
 import insung.satto.domain.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -18,6 +20,9 @@ import java.util.Map;
 @Controller
 @ResponseBody
 public class UserController {
+
+    @Value("${file.dir}")
+    private String fileDir;
 
     private final UserService userService;
     private final UserRepository userRepository;
@@ -56,12 +61,14 @@ public class UserController {
     public ApiResponse<?> changePublicStatus(@RequestHeader("Authorization") String accessToken) {
         accessToken = accessToken.substring(7);
         String studentId = jwtUtill.getStudentId(accessToken);
-        try {
-            userService.changePublicStatus(studentId);
-            return ApiResponse.onSuccess(null);
-        } catch (DuplicateKeyException e) {
-            return ApiResponse.onFailure("403", e.getMessage());
-        }
+//        try {
+//            userService.changePublicStatus(studentId);
+//            return ApiResponse.onSuccess(null);
+//        } catch (DuplicateKeyException e) {
+//            return ApiResponse.onFailure("403", e.getMessage());
+//        }
+        userService.changePublicStatus(studentId);
+        return ApiResponse.onSuccess(null);
     }
 
     @DeleteMapping("/withdrawal")
@@ -127,5 +134,40 @@ public class UserController {
             log.info(e.getMessage());
             return ApiResponse.onFailure("402", "에러");
         }
+    }
+
+    @PostMapping("/profileImage")
+    public ApiResponse<?> uploadProfileImage(@RequestHeader("Authorization") String accessToken, @RequestParam("file") MultipartFile profileImage) {
+
+        log.info("uploadProfileImage()");
+        accessToken = accessToken.substring(7);
+        String studentId = jwtUtill.getStudentId(accessToken);
+
+        if(profileImage.isEmpty()) {
+            return ApiResponse.onFailure("400", "파일이 비어있습니다");
+        }
+
+        try {
+            String imageUrl = userService.uploadProfileImage(studentId, profileImage);
+            return ApiResponse.onSuccess(imageUrl);
+        } catch (Exception e) {
+            log.error("프로필 이미지 업로드 실패", e);
+            return ApiResponse.onFailure("400", "이미지 업로드 실패");
+        }
+    }
+
+    @DeleteMapping("/profileImage")
+    public ApiResponse<?> deleteProfileImage(@RequestHeader("Authorization") String accessToken) {
+        log.info("deleteProfileImage()");
+        accessToken = accessToken.substring(7);
+        String studentId = jwtUtill.getStudentId(accessToken);
+        try {
+            userService.deleteProfileImage(studentId);
+            return ApiResponse.onSuccess(null);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            return ApiResponse.onFailure("400", e.getMessage());
+        }
+
     }
 }
