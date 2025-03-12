@@ -75,10 +75,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String studentId = customUserDetails.getStudentId();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         String role = authorities.iterator().next().getAuthority();
+        Long id = customUserDetails.getId();
 
         // 토큰 생성
-        String access = jwtUtil.createJwt("access", studentId, role, 600000L);
-        String refresh = jwtUtil.createJwt("refresh", studentId, role, 86400000L);
+        String access = jwtUtil.createJwt("access", id, studentId, role, 600000L);
+        String refresh = jwtUtil.createJwt("refresh", id, studentId, role, 86400000L);
 
         // redis에 refresh토큰만 저장
         ListOperations<String, String> listOps = redisTemplate.opsForList();

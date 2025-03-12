@@ -23,6 +23,10 @@ public class JWTUtil {
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
     }
 
+    public Long getId(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("id", Long.class);
+    }
+
     public String getStudentId(String token) {
 
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("studentId", String.class);
@@ -44,9 +48,10 @@ public class JWTUtil {
     }
 
     // 카테고리, 학번, 권한, 유효기간으로 토큰을 생성
-    public String createJwt(String category, String studentId, String role, Long expiredMs) {
+    public String createJwt(String category, Long id, String studentId, String role, Long expiredMs) {
 
         return Jwts.builder()
+                .claim("id", id)
                 .claim("category", category)
                 .claim("studentId", studentId)
                 .claim("role", role)

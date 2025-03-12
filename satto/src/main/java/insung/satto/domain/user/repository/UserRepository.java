@@ -3,23 +3,28 @@ package insung.satto.domain.user.repository;
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
 
+import java.util.List;
+import java.util.Optional;
+
 public interface UserRepository {
 
     User save(User user);
 
-    User findByStudentId(String studentId);
+    Optional<User> findById(Long id);
+
+    List<User> findAll();
 
     boolean existsByStudentId(String studentId);
 
-    void toggleAccountPrivacy(boolean currentStatus, String studentId);
+    void toggleAccountPrivacy(Long id);
 
-    void withdrawal(String studentId);
+    void withdrawal(Long id);
 
-    void changePassword(String password, String studentId);
+    void changePassword(String password, Long id);
 
-    void editProfile(String studentId, EditProfileDTO editProfileDTO);
+    void editProfile(Long id, EditProfileDTO editProfileDTO);
 
-    void editProfileImage(String studentId, String profileImage);
+    void editProfileImage(Long id, String profileImage);
 
 }
 
