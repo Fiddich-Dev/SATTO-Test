@@ -3,91 +3,48 @@ package insung.satto.domain.user.repository;
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @Transactional
 @SpringBootTest
-class UserRepositoryJDBCV2Test {
+class UserRepositoryJDBCV2Test2 {
 
     @Autowired
     UserRepository userRepository;
-
-    @Autowired
-    PlatformTransactionManager transactionManager;
-    TransactionStatus status;
-
-//    @BeforeEach
-//    void beforeEach() {
-//        // 트랜잭션 시작
-//        status = transactionManager.getTransaction(new DefaultTransactionDefinition());
-//    }
-//
-//    @AfterEach
-//    void afterEach() {
-//        transactionManager.rollback(status);
-//    }
-
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-
 
     @Test
     @DisplayName("회원가입")
     void save() {
         // give
-        User user = new User();
-        user.setStudentId("20240001");
-        user.setPassword("securePassword");
-        user.setUsername("홍길동");
-        user.setNickname("길동이");
-        user.setDepartment("컴퓨터공학과");
-        user.setGrade(3);
-        user.setIsPublic(true);
-        user.setRole("STUDENT");
-        user.setProfileImage("profile_20240001.png");
+        User user = new User("stdudentId", "password", "username");
 
         // when
         User savedUser = userRepository.save(user);
 
         // then
-        User dbUser = userRepository.findByStudentId(user.getStudentId());
-        assertThat(savedUser.getStudentId()).isEqualTo(dbUser.getStudentId());
+        User findUser = userRepository.findByStudentId(user.getStudentId());
+        assertThat(savedUser.getStudentId()).isEqualTo(findUser.getStudentId());
     }
 
     @Test
+    @DisplayName("유저 찾기")
     void findByStudentId() {
         // given
-        User user = new User();
-        user.setStudentId("201910914");
-        user.setPassword("securePassword");
-        user.setUsername("홍길동");
-        user.setNickname("길동이");
-        user.setDepartment("컴퓨터공학과");
-        user.setGrade(3);
-        user.setIsPublic(true);
-        user.setRole("STUDENT");
-        user.setProfileImage("profile_20240001.png");
+        User user = new User("stdudentId", "password", "username");
         User savedUser = userRepository.save(user);
 
         // when
-        User findUser = userRepository.findByStudentId("201910914");
-        log.info(findUser.getStudentId());
+        User findUser = userRepository.findByStudentId("stdudentId");
 
         // then
         assertThat(savedUser).isEqualTo(findUser);
@@ -140,16 +97,7 @@ class UserRepositoryJDBCV2Test {
     @Test
     void withdrwal() {
         // given
-        User user = new User();
-        user.setStudentId("201910914");
-        user.setPassword("securePassword");
-        user.setUsername("홍길동");
-        user.setNickname("길동이");
-        user.setDepartment("컴퓨터공학과");
-        user.setGrade(3);
-        user.setIsPublic(true);
-        user.setRole("STUDENT");
-        user.setProfileImage("profile_20240001.png");
+        User user = new User("stdudentId", "password", "username");
         User savedUser = userRepository.save(user);
 
         // when

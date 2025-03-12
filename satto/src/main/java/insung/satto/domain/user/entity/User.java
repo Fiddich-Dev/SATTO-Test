@@ -6,15 +6,18 @@ import lombok.Setter;
 
 import java.util.Objects;
 
-@Entity
+
 @Setter
 @Getter
+@Entity
+@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+//    @Column(name = "studentId", length = 20)
     private String studentId;
     private String password;
     private String username;
@@ -25,6 +28,24 @@ public class User {
     private String profileImage;
 
     private String role;
+
+
+    public User() {
+
+    }
+
+    public User(String studentId, String password, String username, String nickname, String department, Integer grade, Boolean isPublic, String profileImage, String role) {
+        this.studentId = studentId;
+        this.password = password;
+        this.username = username;
+        this.nickname = nickname;
+        this.department = department;
+        this.grade = grade;
+        this.isPublic = isPublic;
+        this.profileImage = profileImage;
+        this.role = role;
+    }
+
 
     @Override
     public boolean equals(Object o) {

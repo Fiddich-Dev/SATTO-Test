@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-@Repository
+//@Repository
 public class UserRepositoryJDBCV2 implements UserRepository {
 
     private final NamedParameterJdbcTemplate template;

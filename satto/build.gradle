@@ -34,7 +34,7 @@ dependencies {
 
 	// Spring Security
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	//JPA
+	//JPA, 스프링 데이터 JPA 추가
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	//H2 DB
 	runtimeOnly 'com.h2database:h2'

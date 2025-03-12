@@ -14,10 +14,16 @@ import java.util.NoSuchElementException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(Exception.class)
-    public ApiResponse<?> handleAllException(Exception e) {
+    @ExceptionHandler({Exception.class})
+    public ResponseEntity<ApiResponse<String>> handleAllException(Exception e) {
         log.error(">>>>> Internal Server Error : ", e);
-        return ApiResponse.onFailure("500", "서버 오류");
+        BaseErrorCode errorCode = GlobalErrorCode.INTERNAL_SERVER_ERROR;
+        ApiResponse<String> errorResponse = ApiResponse.onFailure(
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                e.getMessage()
+        );
+        return ResponseEntity.internalServerError().body(errorResponse);
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
