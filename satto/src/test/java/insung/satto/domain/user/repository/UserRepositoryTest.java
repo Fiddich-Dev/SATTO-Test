@@ -2,12 +2,14 @@ package insung.satto.domain.user.repository;
 
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +23,9 @@ class UserRepositoryTest {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EntityManager em;
 
     @Test
     @DisplayName("회원가입")
@@ -47,6 +52,19 @@ class UserRepositoryTest {
 
         // then
         assertThat(savedUser).isEqualTo(findUser);
+    }
+
+    @Test
+    void findAll() {
+        // given
+        User user = this.user;
+        User savedUser = userRepository.save(user);
+
+        // when
+        List<User> findUsers = userRepository.findAll();
+
+        // then
+        assertThat(findUsers.size()).isEqualTo(1);
     }
 
     @Test
