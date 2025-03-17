@@ -3,12 +3,14 @@ package insung.satto.domain.user.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -16,7 +18,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class MailService {
 
@@ -32,7 +36,7 @@ public class MailService {
     }
 
     // 이메일 전송 메소드
-    public void sendAuthCode(String toEmail) {
+    public String sendAuthCode(String toEmail) {
 
         String authCode = generateAuthCode();
         try {
@@ -46,6 +50,7 @@ public class MailService {
             mailSender.send(message);
             // redis에 저장
             saveAuthCode(toEmail, authCode);
+            return authCode;
         } catch (MessagingException e) {
             throw new RuntimeException("이메일 전송 실패", e);
         }
@@ -55,13 +60,14 @@ public class MailService {
     public void saveAuthCode(String email, String authCode) {
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
         // 여러번 보내면 대치됨
-        valueOperations.set(email + ":autoCode", authCode, 3, TimeUnit.MINUTES);
+        valueOperations.set(email + ":authCode", authCode, 3, TimeUnit.MINUTES);
     }
 
     // redis에 저장된 인증번호 검증 key값은 email + ":authCode"
     public boolean verifyAuthCode(String email, String inputCode) {
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
-        String storedCode = valueOperations.getAndDelete(email + ":autoCode");
+        String storedCode = valueOperations.getAndDelete(email + ":authCode");
+        log.info("storedCode = {}", storedCode);
         return storedCode != null && storedCode.equals(inputCode);
     }
 

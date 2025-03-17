@@ -29,7 +29,7 @@ public class MailController {
     }
 
     @PostMapping("/verify")
-    public ApiResponse<?> verifyAuthCode(@RequestParam String email, @RequestParam String code) {
+    public ApiResponse<?> verifyAuthCode(@RequestParam(value = "email") String email, @RequestParam(value = "code") String code) {
         log.info("verifyAuthCode()");
         boolean isValid = mailService.verifyAuthCode(email, code);
         if(isValid) {

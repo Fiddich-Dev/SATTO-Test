@@ -2,9 +2,9 @@ package insung.satto.domain.user.repository;
 
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
-import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +22,10 @@ class UserRepositoryTest {
     User user = new User("201910914", "password", "황인성", "insung", "컴퓨터과학과", 3, true, "STUDENT", "프로필이미지경로");
 
     @Autowired
-    UserRepository userRepository;
+    QuerydslUserRepository querydslUserRepository;
 
     @Autowired
-    EntityManager em;
+    SpringDataJpaUserRepository springDataJpaUserRepository;
 
     @Test
     @DisplayName("회원가입")
@@ -34,10 +34,10 @@ class UserRepositoryTest {
         User user = this.user;
 
         // when
-        User savedUser = userRepository.save(user);
+        User savedUser = springDataJpaUserRepository.save(user);
 
         // then
-        User findUser = userRepository.findById(user.getId()).get();
+        User findUser = springDataJpaUserRepository.findById(user.getId()).get();
         assertThat(savedUser.getStudentId()).isEqualTo(findUser.getStudentId());
     }
 
@@ -45,26 +45,13 @@ class UserRepositoryTest {
     void findById() {
         // given
         User user = this.user;
-        User savedUser = userRepository.save(user);
+        User savedUser = springDataJpaUserRepository.save(user);
 
         // when
-        User findUser = userRepository.findById(savedUser.getId()).get();
+        User findUser = springDataJpaUserRepository.findById(savedUser.getId()).get();
 
         // then
         assertThat(savedUser).isEqualTo(findUser);
-    }
-
-    @Test
-    void findAll() {
-        // given
-        User user = this.user;
-        User savedUser = userRepository.save(user);
-
-        // when
-        List<User> findUsers = userRepository.findAll();
-
-        // then
-        assertThat(findUsers.size()).isEqualTo(1);
     }
 
     @Test
@@ -72,11 +59,11 @@ class UserRepositoryTest {
 
         // given
         User user = this.user;
-        User savedUser = userRepository.save(user);
+        User savedUser = springDataJpaUserRepository.save(user);
 
         // when
-        boolean isExist = userRepository.existsByStudentId(savedUser.getStudentId());
-        boolean isExist2 = userRepository.existsByStudentId("없는 학번");
+        boolean isExist = querydslUserRepository.existsByStudentId(savedUser.getStudentId());
+        boolean isExist2 = querydslUserRepository.existsByStudentId("없는 학번");
 
         // then
         assertThat(isExist).isTrue();
@@ -85,17 +72,32 @@ class UserRepositoryTest {
     }
 
     @Test
+    void findAll() {
+        // given
+        User user = this.user;
+        User savedUser = springDataJpaUserRepository.save(user);
+
+        // when
+        List<User> findUsers = querydslUserRepository.findAll();
+
+        // then
+        assertThat(findUsers.size()).isEqualTo(1);
+    }
+
+    @Test
     void toggleAccountPrivacy() {
         // given
         User user = this.user;
-        userRepository.save(user);
+        springDataJpaUserRepository.save(user);
 
         // when
-        userRepository.toggleAccountPrivacy(user.getId());
+        User findUser = springDataJpaUserRepository.findById(user.getId()).get();
+        findUser.setIsPublic(!findUser.getIsPublic());
+
 
         // then
-        User findUser = userRepository.findById(user.getId()).get();
-        assertThat(findUser.getIsPublic()).isFalse();
+        User savedUser = springDataJpaUserRepository.findById(user.getId()).get();
+        assertThat(savedUser.getIsPublic()).isFalse();
         assertThat(findUser.getIsPublic()).isEqualTo(user.getIsPublic());
 
     }
@@ -104,13 +106,13 @@ class UserRepositoryTest {
     void withdrwal() {
         // given
         User user = this.user;
-        userRepository.save(user);
+        springDataJpaUserRepository.save(user);
 
         // when
-        userRepository.withdrawal(user.getId());
+        springDataJpaUserRepository.deleteById(user.getId());
 
         // then
-        Optional<User> findUser = userRepository.findById(user.getId());
+        Optional<User> findUser = springDataJpaUserRepository.findById(user.getId());
         assertThat(findUser).isEmpty();
     }
 
@@ -118,13 +120,14 @@ class UserRepositoryTest {
     void changePassword() {
         // given
         User user = this.user;
-        userRepository.save(user);
+        springDataJpaUserRepository.save(user);
 
         // when
-        userRepository.changePassword("1234", user.getId());
+        User findUser = springDataJpaUserRepository.findById(user.getId()).get();
+        findUser.setPassword("1234");
 
         // then
-        User savedUser = userRepository.findById(user.getId()).get();
+        User savedUser = springDataJpaUserRepository.findById(user.getId()).get();
         assertThat(savedUser.getPassword()).isEqualTo("1234");
         assertThat(user.getPassword()).isEqualTo("1234");
 
@@ -134,7 +137,7 @@ class UserRepositoryTest {
     void editProfile() {
         // given
         User user = this.user;
-        userRepository.save(user);
+        springDataJpaUserRepository.save(user);
 
         // when
         EditProfileDTO editProfileDTO = new EditProfileDTO();
@@ -142,10 +145,15 @@ class UserRepositoryTest {
         editProfileDTO.setNickname("newinsung");
         editProfileDTO.setDepartment("new컴퓨터과학과");
         editProfileDTO.setGrade(5);
-        userRepository.editProfile(user.getId(), editProfileDTO);
+
+        User findUser = springDataJpaUserRepository.findById(user.getId()).get();
+        findUser.setUsername(editProfileDTO.getUsername());
+        findUser.setNickname(editProfileDTO.getNickname());
+        findUser.setDepartment(editProfileDTO.getDepartment());
+        findUser.setGrade(editProfileDTO.getGrade());
 
         // then
-        User savedUser = userRepository.findById(user.getId()).get();
+        User savedUser = springDataJpaUserRepository.findById(user.getId()).get();
         assertThat(savedUser.getUsername()).isEqualTo(editProfileDTO.getUsername());
         assertThat(savedUser.getNickname()).isEqualTo(editProfileDTO.getNickname());
         assertThat(savedUser.getDepartment()).isEqualTo(editProfileDTO.getDepartment());
@@ -155,20 +163,20 @@ class UserRepositoryTest {
         assertThat(user.getNickname()).isEqualTo(editProfileDTO.getNickname());
         assertThat(user.getDepartment()).isEqualTo(editProfileDTO.getDepartment());
         assertThat(user.getGrade()).isEqualTo(editProfileDTO.getGrade());
-
     }
 
     @Test
     void editProfileImage() {
         // given
         User user = this.user;
-        userRepository.save(user);
+        springDataJpaUserRepository.save(user);
 
         // when
-        userRepository.editProfileImage(user.getId(), "newImage.png");
+        User findUser = springDataJpaUserRepository.findById(user.getId()).get();
+        findUser.setProfileImage("newImage.png");
 
         // then
-        User savedUser = userRepository.findById(user.getId()).get();
+        User savedUser = springDataJpaUserRepository.findById(user.getId()).get();
         assertThat(savedUser.getProfileImage()).isEqualTo("newImage.png");
         assertThat(user.getProfileImage()).isEqualTo("newImage.png");
     }

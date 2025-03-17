@@ -32,11 +32,11 @@ public class GlobalExceptionHandler {
         return ApiResponse.onFailure("500", "DuplicateKeyException 오류");
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ApiResponse<?> illegalArgumentException(IllegalArgumentException e) {
-        log.error(">>>>> IllegalArgumentException Error : ", e);
-        return ApiResponse.onFailure("500", "IllegalArgumentException 오류");
-    }
+//    @ExceptionHandler(IllegalArgumentException.class)
+//    public ApiResponse<?> illegalArgumentException(IllegalArgumentException e) {
+//        log.error(">>>>> IllegalArgumentException Error : ", e);
+//        return ApiResponse.onFailure("500", "IllegalArgumentException 오류");
+//    }
 
     @ExceptionHandler(NoSuchElementException.class)
     public ApiResponse<?> noSuchElementException(NoSuchElementException e) {

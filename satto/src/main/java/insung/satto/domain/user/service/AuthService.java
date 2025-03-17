@@ -5,15 +5,19 @@ import insung.satto.domain.user.dto.JoinDTO;
 import insung.satto.domain.user.dto.JwtPair;
 import insung.satto.domain.user.entity.RefreshEntity;
 import insung.satto.domain.user.entity.User;
-import insung.satto.domain.user.repository.UserRepository;
+import insung.satto.domain.user.repository.QuerydslUserRepository;
+import insung.satto.domain.user.repository.SpringDataJpaUserRepository;
 import insung.satto.domain.user.security.jwt.JWTUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.swing.*;
 import java.time.Duration;
 import java.util.Date;
 import java.util.List;
@@ -21,19 +25,15 @@ import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class AuthService {
 
     private final JWTUtil jwtUtil;
-    private final UserRepository userRepository;
+    private final QuerydslUserRepository querydslUserRepository;
+    private final SpringDataJpaUserRepository springDataJpaUserRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
-
-    public AuthService(JWTUtil jwtUtil, UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, RedisTemplate<String, String> redisTemplate) {
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.redisTemplate = redisTemplate;
-    }
 
     public User joinProcess(JoinDTO joinDTO) throws DuplicateKeyException {
 
@@ -46,9 +46,9 @@ public class AuthService {
         Boolean isPublic = joinDTO.getIsPublic();
 
         // 학번이 안겹치는지 확인하는 로직
-//        if(userRepository.existsByStudentId(id)) {
-//            throw new DuplicateKeyException("이미 존재하는 학번입니다");
-//        }
+        if(querydslUserRepository.existsByStudentId(studentId)) {
+            throw new DuplicateKeyException("이미 존재하는 학번입니다");
+        }
 
         User data = new User();
 
@@ -62,7 +62,7 @@ public class AuthService {
         data.setRole("USER");
         data.setProfileImage(null);
 
-        userRepository.save(data);
+        springDataJpaUserRepository.save(data);
         return data;
     }
 

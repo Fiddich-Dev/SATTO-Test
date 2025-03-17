@@ -4,9 +4,11 @@ package insung.satto.domain.user.service;
 
 import insung.satto.domain.user.dto.EditProfileDTO;
 import insung.satto.domain.user.entity.User;
-import insung.satto.domain.user.repository.UserRepository;
+import insung.satto.domain.user.repository.QuerydslUserRepository;
+import insung.satto.domain.user.repository.SpringDataJpaUserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -15,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -22,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -29,7 +33,8 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-//@RequiredArgsConstructor
+@Transactional
+@RequiredArgsConstructor
 public class UserService {
 
     @Value("${file.dir}")
@@ -37,73 +42,57 @@ public class UserService {
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_+=";
 
-    private final UserRepository userRepository;
+    private final QuerydslUserRepository querydslUserRepository;
+    private final SpringDataJpaUserRepository springDataJpaUserRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final JavaMailSender mailSender;
     private final RedisTemplate<String, String> redisTemplate;
 
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, JavaMailSender mailSender, RedisTemplate<String, String> redisTemplate) {
-        this.userRepository = userRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
-        this.mailSender = mailSender;
-        this.redisTemplate = redisTemplate;
+    public User findById(Long id) {
+        return springDataJpaUserRepository.findById(id).orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다. ID: " + id));
     }
 
     // true면 학번이 db에 있음
     public boolean existsByStudentId(String studentId) {
         log.info("existsByStudentId()");
-        boolean exists = userRepository.existsByStudentId(studentId);
-        return exists;
+        return querydslUserRepository.existsByStudentId(studentId);
     }
 
     public void changePublicStatus(Long id) {
         log.info("changePublicStatus");
-        // 학생 존재 여부 확인
-//        if(existsByStudentId(id)) {
-//            Optional<User> user = findByStudentId(id);
-//            userRepository.toggleAccountPrivacy(user.get().getIsPublic(), id);
-//        }
-//        else {
-//            throw new DuplicateKeyException("학번이 없거나 2개이상");
-//        }
-    }
-
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
+        User findUser = findById(id);
+        findUser.setIsPublic(!findUser.getIsPublic());
     }
 
     public void withdrawal(Long id) {
+        findById(id);
         // redis에서 studentId + ":refreshToken" 키 삭제
         redisTemplate.delete(id + ":refreshToken");
-        userRepository.withdrawal(id);
+        springDataJpaUserRepository.deleteById(id);
     }
 
     public boolean verifyCurrentPassword(Long id, String inputPassword) {
-        User user = findById(id).get();
-        if(!bCryptPasswordEncoder.matches(inputPassword, user.getPassword())) {
-//            throw new IllegalArgumentException("현재 비밀번호가 맞지 않습니다.");
-            return false;
-        }
-        return true;
+        User findUser = findById(id);
+        return bCryptPasswordEncoder.matches(inputPassword, findUser.getPassword());
     }
 
     public void changePassword(Long id, String inputPassword) {
-        User user = findById(id).get();
+        User findUser = findById(id);
         String newPassword = bCryptPasswordEncoder.encode(inputPassword);
-        userRepository.changePassword(newPassword, user.getId());
+        findUser.setPassword(inputPassword);
     }
 
     public void editProfile(Long id, EditProfileDTO editProfileDTO) {
-//        String name = editProfileDTO.getUsername();
-//        String nickname = editProfileDTO.getNickname();
-//        String department = editProfileDTO.getDepartment();
-//        Integer grade = editProfileDTO.getGrade();
-
-        userRepository.editProfile(id, editProfileDTO);
+        User findUser = findById(id);
+        findUser.setUsername(editProfileDTO.getUsername());
+        findUser.setNickname(editProfileDTO.getNickname());
+        findUser.setDepartment(editProfileDTO.getDepartment());
+        findUser.setGrade(editProfileDTO.getGrade());
     }
 
     public void sendNewPassword(Long id) {
+        User findUser = findById(id);
         // 랜덤 비밀번호 생성
         Random random = new SecureRandom();
         String password = "";
@@ -114,7 +103,7 @@ public class UserService {
         // 비밀번호 암호화
         String Encodedpassword = bCryptPasswordEncoder.encode(password);
         // 암호화된 비밀번호로 db변경
-        userRepository.changePassword(Encodedpassword, id);
+        findUser.setPassword(Encodedpassword);
         // 이메일 전송
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -132,6 +121,7 @@ public class UserService {
     }
 
     public String uploadProfileImage(Long id, MultipartFile file) throws IOException {
+        User findUser = findById(id);
         // 1. 파일 확장자 확인
         String originalFilename = file.getOriginalFilename();
         String extension = Optional.ofNullable(originalFilename)
@@ -158,14 +148,16 @@ public class UserService {
         // 5. 파일 저장
         file.transferTo(filePath.toFile());
 
-        userRepository.editProfileImage(id, fileDir + "/" + newFileName);
+        // db에 프로필 이미지 경로 수정
+        findUser.setProfileImage(fileDir + "/" + newFileName);
 
         // 6. 업로드된 파일 URL 반환
         return fileDir + "/" + newFileName;
     }
 
     public void deleteProfileImage(Long id) {
-        userRepository.editProfileImage(id, null);
+        User findUser = findById(id);
+        findUser.setProfileImage(null);
     }
 
     // 이미지 파일 확장자 검사
